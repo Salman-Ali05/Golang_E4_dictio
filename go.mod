@@ -1,3 +1,3 @@
-module example.com/Golang_E4_dictio
+module Golang_E4_dictio/main
 
 go 1.21.5
