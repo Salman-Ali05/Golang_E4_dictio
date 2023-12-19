@@ -1,10 +1,9 @@
-// main.go
 package main
 
 import (
 	"fmt"
 
-	"./dictionary"
+	"Golang_E4_dictio/main/dictionary"
 )
 
 func main() {
