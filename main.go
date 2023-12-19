@@ -46,6 +46,8 @@ func main() {
 	dictionary.add("go", "aller")
 	dictionary.add("hello", "bonjour")
 	dictionary.add("world", "monde")
+	dictionary.add("eat", "manger")
+	dictionary.add("drink", "boire")
 
 	def, found := dictionary.get("go")
 	if found {
