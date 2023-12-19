@@ -1,65 +1,32 @@
+// main.go
 package main
 
 import (
 	"fmt"
-	"sort"
+
+	"./dictionary"
 )
 
-type Dictionary struct {
-	entries map[string]string
-}
-
-func NewDictionary() *Dictionary {
-	return &Dictionary{
-		entries: make(map[string]string),
-	}
-}
-
-func (d *Dictionary) add(word, definition string) {
-	d.entries[word] = definition
-}
-
-func (d *Dictionary) get(word string) (string, bool) {
-	definition, ok := d.entries[word]
-	return definition, ok
-}
-
-func (d *Dictionary) remove(word string) {
-	delete(d.entries, word)
-}
-
-func (d *Dictionary) list() []string {
-	var result []string
-
-	for word, definition := range d.entries {
-		result = append(result, fmt.Sprintf("%s: %s", word, definition))
-	}
-
-	sort.Strings(result)
-
-	return result
-}
-
 func main() {
-	dictionary := NewDictionary()
+	dictionary := dictionary.NewDictionary()
 
-	dictionary.add("go", "aller")
-	dictionary.add("hello", "bonjour")
-	dictionary.add("world", "monde")
-	dictionary.add("eat", "manger")
-	dictionary.add("drink", "boire")
+	dictionary.Add("go", "aller")
+	dictionary.Add("hello", "bonjour")
+	dictionary.Add("world", "monde")
+	dictionary.Add("eat", "manger")
+	dictionary.Add("drink", "boire")
 
-	def, found := dictionary.get("go")
+	def, found := dictionary.Get("go")
 	if found {
 		fmt.Printf("Translation of 'go': %s\n", def)
 	} else {
 		fmt.Println("Not found.")
 	}
 
-	dictionary.remove("world")
+	dictionary.Remove("world")
 
-	wordList := dictionary.list()
-	fmt.Println("Dictionary words :")
+	wordList := dictionary.List()
+	fmt.Println("Dictionary words:")
 	for _, entry := range wordList {
 		fmt.Println(entry)
 	}
