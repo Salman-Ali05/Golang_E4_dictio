@@ -28,7 +28,7 @@ func NewDictionary(filename string) (*Dictionary, error) {
 		addChan:    make(chan dictioOps),
 		removeChan: make(chan dictioOps),
 	}
-	go d.startOperationManager() // goroutine
+	go d.startOperationManager() // goroutine pour gérer une méthode "CRUD"
 
 	err := d.LoadFromFile(filename)
 	if err != nil {
