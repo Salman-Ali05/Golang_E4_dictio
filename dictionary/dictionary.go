@@ -7,8 +7,13 @@ import (
 	"sort"
 )
 
-// nil = null
+// Entry représente une entrée dans le dictionnaire.
+type Entry struct {
+	Word       string `json:"word"`
+	Definition string `json:"definition"`
+}
 
+// Dictionary représente un dictionnaire.
 type Dictionary struct {
 	entries    map[string]string
 	addChan    chan dictioOps
@@ -16,19 +21,20 @@ type Dictionary struct {
 }
 
 type dictioOps struct {
-	action string // it's gonna be add, remove or else
+	action string
 	word   string
 	def    string
 	res    chan bool
 }
 
+// NewDictionary crée une nouvelle instance de Dictionary.
 func NewDictionary(filename string) (*Dictionary, error) {
 	d := &Dictionary{
 		entries:    make(map[string]string),
 		addChan:    make(chan dictioOps),
 		removeChan: make(chan dictioOps),
 	}
-	go d.startOperationManager() // goroutine pour gérer une méthode "CRUD"
+	go d.startOperationManager()
 
 	err := d.LoadFromFile(filename)
 	if err != nil {
@@ -38,34 +44,37 @@ func NewDictionary(filename string) (*Dictionary, error) {
 	return d, nil
 }
 
+// LoadFromFile charge les données du fichier JSON dans le dictionnaire.
 func (d *Dictionary) LoadFromFile(filename string) error {
 	data, err := os.ReadFile(filename)
 	if err != nil {
-		return nil
+		return err
 	}
 
-	err = json.Unmarshal(data, &d.entries) // json decoder
+	err = json.Unmarshal(data, &d.entries)
 	if err != nil {
-		return fmt.Errorf("Failed decode JSON : %v", err)
+		return fmt.Errorf("Failed decode JSON: %v", err)
 	}
 
 	return nil
 }
 
+// SaveToFile sauvegarde les données du dictionnaire dans un fichier JSON.
 func (d *Dictionary) SaveToFile(filename string) error {
-	data, err := json.MarshalIndent(d.entries, "", "  ") // set json indent
+	data, err := json.MarshalIndent(d.entries, "", "  ")
 	if err != nil {
-		return fmt.Errorf("Failed encode JSON : %v", err)
+		return fmt.Errorf("Failed encode JSON: %v", err)
 	}
 
 	err = os.WriteFile(filename, data, 0644)
 	if err != nil {
-		return fmt.Errorf("Erreur lors de l'écriture dans le fichier : %v", err)
+		return fmt.Errorf("Error writing to file: %v", err)
 	}
 
 	return nil
 }
 
+// Add ajoute une entrée au dictionnaire.
 func (d *Dictionary) Add(word, definition string) {
 	resChan := make(chan bool)
 	d.addChan <- dictioOps{
@@ -75,14 +84,16 @@ func (d *Dictionary) Add(word, definition string) {
 		res:    resChan,
 	}
 
-	<-resChan // check if everything went well
+	<-resChan
 }
 
-func (d *Dictionary) Get(word string) (string, bool) {
+// Get récupère une définition par mot.
+func (d *Dictionary) Get(word string) (Entry, bool) {
 	definition, ok := d.entries[word]
-	return definition, ok
+	return Entry{Word: word, Definition: definition}, ok
 }
 
+// Remove supprime une entrée du dictionnaire.
 func (d *Dictionary) Remove(word string) {
 	resChan := make(chan bool)
 	d.removeChan <- dictioOps{
@@ -90,30 +101,34 @@ func (d *Dictionary) Remove(word string) {
 		word:   word,
 		res:    resChan,
 	}
-	<-resChan // same as Add
+	<-resChan
 }
 
-func (d *Dictionary) List() []string {
-	var result []string
+// List retourne une liste triée des entrées du dictionnaire.
+func (d *Dictionary) List() []Entry {
+	var result []Entry
 
 	for word, definition := range d.entries {
-		result = append(result, fmt.Sprintf("%s: %s", word, definition))
+		result = append(result, Entry{Word: word, Definition: definition})
 	}
 
-	sort.Strings(result)
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].Word < result[j].Word
+	})
 
 	return result
 }
 
+// startOperationManager gère les opérations du dictionnaire de manière asynchrone.
 func (d *Dictionary) startOperationManager() {
 	for {
 		select {
 		case operation := <-d.addChan:
-			d.entries[operation.word] = operation.def // Add
+			d.entries[operation.word] = operation.def
 			operation.res <- true
 
 		case operation := <-d.removeChan:
-			delete(d.entries, operation.word) // Remove
+			delete(d.entries, operation.word)
 			operation.res <- true
 		}
 	}
