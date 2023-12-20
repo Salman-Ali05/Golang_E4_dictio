@@ -10,13 +10,25 @@ import (
 // nil = null
 
 type Dictionary struct {
-	entries map[string]string
+	entries    map[string]string
+	addChan    chan dictioOps
+	removeChan chan dictioOps
+}
+
+type dictioOps struct {
+	action string // it's gonna be add, remove or else
+	word   string
+	def    string
+	res    chan bool
 }
 
 func NewDictionary(filename string) (*Dictionary, error) {
 	d := &Dictionary{
-		entries: make(map[string]string),
+		entries:    make(map[string]string),
+		addChan:    make(chan dictioOps),
+		removeChan: make(chan dictioOps),
 	}
+	go d.startOperationManager() // goroutine
 
 	err := d.LoadFromFile(filename)
 	if err != nil {
@@ -55,7 +67,15 @@ func (d *Dictionary) SaveToFile(filename string) error {
 }
 
 func (d *Dictionary) Add(word, definition string) {
-	d.entries[word] = definition
+	resChan := make(chan bool)
+	d.addChan <- dictioOps{
+		action: "add",
+		word:   word,
+		def:    definition,
+		res:    resChan,
+	}
+
+	<-resChan // check if everything went well
 }
 
 func (d *Dictionary) Get(word string) (string, bool) {
@@ -64,7 +84,13 @@ func (d *Dictionary) Get(word string) (string, bool) {
 }
 
 func (d *Dictionary) Remove(word string) {
-	delete(d.entries, word)
+	resChan := make(chan bool)
+	d.removeChan <- dictioOps{
+		action: "remove",
+		word:   word,
+		res:    resChan,
+	}
+	<-resChan // same as Add
 }
 
 func (d *Dictionary) List() []string {
@@ -77,4 +103,18 @@ func (d *Dictionary) List() []string {
 	sort.Strings(result)
 
 	return result
+}
+
+func (d *Dictionary) startOperationManager() {
+	for {
+		select {
+		case operation := <-d.addChan:
+			d.entries[operation.word] = operation.def // Add
+			operation.res <- true
+
+		case operation := <-d.removeChan:
+			delete(d.entries, operation.word) // Remove
+			operation.res <- true
+		}
+	}
 }
