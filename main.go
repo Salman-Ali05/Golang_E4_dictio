@@ -46,6 +46,7 @@ func AddHandler(w http.ResponseWriter, r *http.Request) {
 
 	dict.Add(entry.Word, entry.Definition)
 	w.WriteHeader(http.StatusOK)
+	fmt.Fprintln(w, "Successfully added:", entry.Word)
 }
 
 func GetHandler(w http.ResponseWriter, r *http.Request) {
@@ -76,10 +77,13 @@ func RemoveHandler(w http.ResponseWriter, r *http.Request) {
 	if found {
 		fmt.Println(word, definition)
 		dict.Remove(word)
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintln(w, "Successfully removed:", word)
 	} else {
 		fmt.Println("Not found")
+		w.WriteHeader(http.StatusNotFound)
+		fmt.Fprintln(w, "Word not found:", word)
 	}
-	w.WriteHeader(http.StatusOK)
 }
 
 func ListHandler(w http.ResponseWriter, r *http.Request) {
