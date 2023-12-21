@@ -98,6 +98,8 @@ json :{
   "word": "word",
   "definition": "definition"
 }
-To remove a word : localhost:8081/remove in POST method (you can try in POSTMAN)
-
+To remove a word : localhost:8081/remove in DELETE method (you can try in POSTMAN)
+json :{
+  "word": "word"
+}
 */
