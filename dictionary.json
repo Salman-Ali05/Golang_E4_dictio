@@ -1,8 +1,4 @@
 {
-  "chai": "thé",
-  "drink": "boire",
-  "eat": "manger",
-  "go": "aller",
-  "hello": "bonjour",
-  "run": "courir"
+  "word": "def",
+  "word2": "def2"
 }

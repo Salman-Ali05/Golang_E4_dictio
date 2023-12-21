@@ -5,7 +5,11 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"sync"
 )
+
+var saveQueue = make(chan bool)
+var mutex = &sync.Mutex{}
 
 // Entry représente une entrée dans le dictionnaire.
 type Entry struct {
@@ -46,6 +50,19 @@ func NewDictionary(filename string) (*Dictionary, error) {
 
 // LoadFromFile charge les données du fichier JSON dans le dictionnaire.
 func (d *Dictionary) LoadFromFile(filename string) error {
+	_, err := os.Stat(filename)
+	if os.IsNotExist(err) {
+		// Le fichier n'existe pas, créez-le avec un dictionnaire vide
+		d.entries = make(map[string]string)
+		err := d.SaveToFile(filename)
+		if err != nil {
+			return fmt.Errorf("Error creating new file: %v", err)
+		}
+		return nil
+	} else if err != nil {
+		return err
+	}
+
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		return err
@@ -74,7 +91,6 @@ func (d *Dictionary) SaveToFile(filename string) error {
 	return nil
 }
 
-// Add ajoute une entrée au dictionnaire.
 func (d *Dictionary) Add(word, definition string) {
 	resChan := make(chan bool)
 	d.addChan <- dictioOps{
@@ -85,6 +101,12 @@ func (d *Dictionary) Add(word, definition string) {
 	}
 
 	<-resChan
+
+	// Ajouter l'opération d'écriture du fichier après chaque ajout
+	select {
+	case saveQueue <- true:
+	default:
+	}
 }
 
 // Get récupère une définition par mot.
@@ -94,14 +116,14 @@ func (d *Dictionary) Get(word string) (Entry, bool) {
 }
 
 // Remove supprime une entrée du dictionnaire.
-func (d *Dictionary) Remove(word string) {
+func (d *Dictionary) Remove(word string) bool {
 	resChan := make(chan bool)
 	d.removeChan <- dictioOps{
 		action: "remove",
 		word:   word,
 		res:    resChan,
 	}
-	<-resChan
+	return <-resChan
 }
 
 // List retourne une liste triée des entrées du dictionnaire.
@@ -124,12 +146,46 @@ func (d *Dictionary) startOperationManager() {
 	for {
 		select {
 		case operation := <-d.addChan:
+			// Charger les données existantes depuis le fichier
+			err := d.LoadFromFile("dictionary.json")
+			if err != nil {
+				fmt.Println("Error loading from file:", err)
+			}
+
+			// Ajouter la nouvelle entrée
 			d.entries[operation.word] = operation.def
+
+			// Sauvegarder toutes les entrées dans le fichier
+			err = d.SaveToFile("dictionary.json")
+			if err != nil {
+				fmt.Println("Error saving to file:", err)
+			}
+
 			operation.res <- true
 
 		case operation := <-d.removeChan:
-			delete(d.entries, operation.word)
-			operation.res <- true
+			// Charger les données existantes depuis le fichier
+			err := d.LoadFromFile("dictionary.json")
+			if err != nil {
+				fmt.Println("Error loading from file:", err)
+			}
+
+			// Vérifier si l'entrée existe avant de la supprimer
+			if _, exists := d.entries[operation.word]; exists {
+				// Supprimer l'entrée
+				delete(d.entries, operation.word)
+
+				// Sauvegarder toutes les entrées dans le fichier
+				err = d.SaveToFile("dictionary.json")
+				if err != nil {
+					fmt.Println("Error saving to file:", err)
+				}
+
+				operation.res <- true
+			} else {
+				// Le mot n'existe pas, renvoyer false
+				operation.res <- false
+			}
 		}
 	}
 }
