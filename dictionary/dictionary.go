@@ -128,6 +128,13 @@ func (d *Dictionary) Remove(word string) bool {
 
 // List retourne une liste triée des entrées du dictionnaire.
 func (d *Dictionary) List() []Entry {
+	// Charger les données existantes depuis le fichier
+	err := d.LoadFromFile("dictionary.json")
+	if err != nil {
+		fmt.Println("Error loading from file:", err)
+		return nil
+	}
+
 	var result []Entry
 
 	for word, definition := range d.entries {
@@ -150,6 +157,8 @@ func (d *Dictionary) startOperationManager() {
 			err := d.LoadFromFile("dictionary.json")
 			if err != nil {
 				fmt.Println("Error loading from file:", err)
+				operation.res <- false
+				continue
 			}
 
 			// Ajouter la nouvelle entrée
@@ -159,6 +168,8 @@ func (d *Dictionary) startOperationManager() {
 			err = d.SaveToFile("dictionary.json")
 			if err != nil {
 				fmt.Println("Error saving to file:", err)
+				operation.res <- false
+				continue
 			}
 
 			operation.res <- true
@@ -168,6 +179,8 @@ func (d *Dictionary) startOperationManager() {
 			err := d.LoadFromFile("dictionary.json")
 			if err != nil {
 				fmt.Println("Error loading from file:", err)
+				operation.res <- false
+				continue
 			}
 
 			// Vérifier si l'entrée existe avant de la supprimer
@@ -179,6 +192,8 @@ func (d *Dictionary) startOperationManager() {
 				err = d.SaveToFile("dictionary.json")
 				if err != nil {
 					fmt.Println("Error saving to file:", err)
+					operation.res <- false
+					continue
 				}
 
 				operation.res <- true
