@@ -72,7 +72,13 @@ func RemoveHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	word := r.URL.Path[len("/remove/"):]
-	dict.Remove(word)
+	definition, found := dict.Get(word)
+	if found {
+		fmt.Println(word, definition)
+		dict.Remove(word)
+	} else {
+		fmt.Println("Not found")
+	}
 	w.WriteHeader(http.StatusOK)
 }
 
