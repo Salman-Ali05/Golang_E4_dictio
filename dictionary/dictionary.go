@@ -11,13 +11,13 @@ import (
 var saveQueue = make(chan bool)
 var mutex = &sync.Mutex{}
 
-// Entry représente une entrée dans le dictionnaire.
+// Entry is the entries of the dictionary
 type Entry struct {
 	Word       string `json:"word"`
 	Definition string `json:"definition"`
 }
 
-// Dictionary représente un dictionnaire.
+// Dictionary type
 type Dictionary struct {
 	entries    map[string]string
 	addChan    chan dictioOps
@@ -31,7 +31,7 @@ type dictioOps struct {
 	res    chan bool
 }
 
-// NewDictionary crée une nouvelle instance de Dictionary.
+// new dico
 func NewDictionary(filename string) (*Dictionary, error) {
 	d := &Dictionary{
 		entries:    make(map[string]string),
@@ -128,7 +128,6 @@ func (d *Dictionary) Remove(word string) bool {
 
 // List retourne une liste triée des entrées du dictionnaire.
 func (d *Dictionary) List() []Entry {
-	// Charger les données existantes depuis le fichier
 	err := d.LoadFromFile("dictionary.json")
 	if err != nil {
 		fmt.Println("Error loading from file:", err)
@@ -153,7 +152,6 @@ func (d *Dictionary) startOperationManager() {
 	for {
 		select {
 		case operation := <-d.addChan:
-			// Charger les données existantes depuis le fichier
 			err := d.LoadFromFile("dictionary.json")
 			if err != nil {
 				fmt.Println("Error loading from file:", err)
@@ -164,7 +162,6 @@ func (d *Dictionary) startOperationManager() {
 			// Ajouter la nouvelle entrée
 			d.entries[operation.word] = operation.def
 
-			// Sauvegarder toutes les entrées dans le fichier
 			err = d.SaveToFile("dictionary.json")
 			if err != nil {
 				fmt.Println("Error saving to file:", err)
@@ -175,7 +172,6 @@ func (d *Dictionary) startOperationManager() {
 			operation.res <- true
 
 		case operation := <-d.removeChan:
-			// Charger les données existantes depuis le fichier
 			err := d.LoadFromFile("dictionary.json")
 			if err != nil {
 				fmt.Println("Error loading from file:", err)
@@ -183,12 +179,10 @@ func (d *Dictionary) startOperationManager() {
 				continue
 			}
 
-			// Vérifier si l'entrée existe avant de la supprimer
 			if _, exists := d.entries[operation.word]; exists {
 				// Supprimer l'entrée
 				delete(d.entries, operation.word)
 
-				// Sauvegarder toutes les entrées dans le fichier
 				err = d.SaveToFile("dictionary.json")
 				if err != nil {
 					fmt.Println("Error saving to file:", err)
@@ -198,9 +192,13 @@ func (d *Dictionary) startOperationManager() {
 
 				operation.res <- true
 			} else {
-				// Le mot n'existe pas, renvoyer false
 				operation.res <- false
 			}
+		}
+
+		select {
+		case saveQueue <- true:
+		default:
 		}
 	}
 }

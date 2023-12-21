@@ -67,12 +67,19 @@ func GetHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func RemoveHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodDelete {
+	if r.Method != http.MethodPost {
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 		return
 	}
 
-	word := r.URL.Path[len("/remove/"):]
+	var requestBody map[string]string
+	err := json.NewDecoder(r.Body).Decode(&requestBody)
+	if err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	word := requestBody["word"]
 	successfullyRemoved := dict.Remove(word)
 
 	if successfullyRemoved {
